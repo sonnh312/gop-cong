@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Góp Công Online</title>
+<style>
+:root{--bg:#fbf7f0;--card:#fff;--text:#2b2118;--muted:#7a6a5c;--accent:#c8501e;--accent2:#2f7d5b;--line:#eadfce;--track:#f0e6d6}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1713;--card:#272019;--text:#f3ebe0;--muted:#b3a291;--accent:#ef8a5a;--accent2:#6cc29b;--line:#3a3028;--track:#352c24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;padding:28px 0 12px}
+header h1{font-size:2rem;margin:0 0 6px;color:var(--accent)}
+header p{margin:0;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.stat b{display:block;font-size:1.5rem;color:var(--accent2)}
+.stat span{font-size:.8rem;color:var(--muted)}
+h2{font-size:1.2rem;margin:28px 0 12px}
+.tasks,.list{display:grid;gap:10px}
+.task{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.task h3{margin:0;font-size:1rem}
+small{color:var(--muted)}
+.bar{height:8px;background:var(--track);border-radius:99px;margin:10px 0 2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent2);border-radius:99px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 4px}
+input,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6}
+.item{display:flex;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;align-items:center}
+.item .n{font-weight:600}
+.item .m{font-size:.8rem;color:var(--muted)}
+.del{margin:0;width:auto;padding:4px 10px;background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:400}
+.empty{color:var(--muted);text-align:center;padding:16px}
+.msg{margin-top:10px;font-size:.9rem;min-height:1.2em}
+@media(max-width:520px){.row{grid-template-columns:1fr}.stat b{font-size:1.2rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>🤝 Góp Công</h1><p>Dành thời gian của bạn để giúp người khác. Mỗi giờ công đều đáng quý.</p></header>
+
+<div class="stats">
+<div class="stat"><b id="sPeople">0</b><span>lượt góp công</span></div>
+<div class="stat"><b id="sHours">0 phút</b><span>tổng thời gian</span></div>
+<div class="stat"><b id="sTo">0</b><span>người được giúp</span></div>
+</div>
+
+<h2>Giờ công đã góp cho từng người</h2>
+<div class="tasks" id="tasks"></div>
+
+<h2>Góp giờ công cho người khác</h2>
+<div class="card">
+<div class="row">
+<div><label for="name">Họ tên của bạn *</label><input id="name" maxlength="60" placeholder="Nguyễn Văn A"></div>
+<div><label for="phone">Số điện thoại (chỉ quản trị viên thấy)</label><input id="phone" inputmode="tel" maxlength="20" placeholder="09xx xxx xxx"></div>
+</div>
+<div class="row">
+<div><label for="to">Góp cho ai *</label><input id="to" list="tolist" maxlength="60" placeholder="Tên người nhận giúp đỡ"><datalist id="tolist"></datalist></div>
+<div><label for="hours">Thời gian góp *</label><div style="display:flex;gap:8px;align-items:center"><input id="hours" type="number" min="0" max="24" value="2"><span>giờ</span><input id="mins" type="number" min="0" max="59" step="5" value="0"><span>phút</span></div></div>
+</div>
+<label for="note">Bạn sẽ giúp việc gì?</label>
+<textarea id="note" rows="2" maxlength="200" placeholder="Ví dụ: phụ dọn nhà, dạy kèm toán, chở đi khám"></textarea>
+<button id="submit">Góp công ngay</button>
+<div class="msg" id="msg"></div>
+</div>
+
+<h2>Lịch sử góp công</h2>
+<div class="list" id="people"></div>
+</div>
+
+<script>
+var data=[];
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function fmt(h){var m=Math.round(h*60),a=Math.floor(m/60),b=m%60;return (a?a+" giờ":"")+(a&&b?" ":"")+(b?b+" phút":"")||"0 phút"}
+function render(){
+var g={},order=[];
+data.forEach(function(d){var k=d.to.toLowerCase();if(!g[k]){g[k]={name:d.to,h:0,n:0};order.push(k)}g[k].h+=d.hours;g[k].n++});
+var arr=order.map(function(k){return g[k]}).sort(function(a,b){return b.h-a.h});
+var max=arr.length?arr[0].h:1,html="",opts="";
+arr.forEach(function(r){
+html+='<div class="task"><div class="top"><h3>'+esc(r.name)+'</h3><small>'+fmt(r.h)+' · '+r.n+' lượt góp</small></div><div class="bar"><i style="width:'+Math.round(r.h/max*100)+'%"></i></div></div>';
+opts+='<option value="'+esc(r.name)+'">';
+});
+$("tasks").innerHTML=html||'<div class="empty">Chưa có giờ công nào được góp.</div>';
+$("tolist").innerHTML=opts;
+$("sPeople").textContent=data.length;
+$("sHours").textContent=fmt(data.reduce(function(a,d){return a+d.hours},0));
+$("sTo").textContent=arr.length;
+var ph="";
+data.slice().reverse().forEach(function(d){
+ph+='<div class="item"><div><div class="n">'+esc(d.name)+' → '+esc(d.to)+'</div><div class="m">'+fmt(d.hours)+(d.note?' · '+esc(d.note):'')+'</div></div><button class="del" data-id="'+esc(d.id)+'">Xóa</button></div>';
+});
+$("people").innerHTML=ph||'<div class="empty">Chưa có ai đăng ký. Hãy là người đầu tiên!</div>';
+}
+function refresh(){
+fetch("/api/list").then(function(r){return r.json()}).then(function(d){data=d;render()}).catch(function(){});
+}
+$("submit").onclick=function(){
+var name=$("name").value.trim(),to=$("to").value.trim(),
+hh=Math.max(0,parseInt($("hours").value,10)||0),
+mm=Math.min(59,Math.max(0,parseInt($("mins").value,10)||0)),
+hours=(hh*60+mm)/60,msg=$("msg");
+if(!name||!to||!(hours>0)){msg.style.color="var(--accent)";msg.textContent="Vui lòng nhập họ tên, người nhận và thời gian hợp lệ.";return}
+$("submit").disabled=true;
+fetch("/api/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,phone:$("phone").value,to:to,hours:hours,note:$("note").value})})
+.then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||"Lỗi");return j})})
+.then(function(){
+["name","phone","to","note"].forEach(function(i){$(i).value=""});
+msg.style.color="var(--accent2)";msg.textContent="Cảm ơn "+name+"! Bạn đã góp "+fmt(hours)+" công cho "+to+" 💛";
+refresh();
+}).catch(function(e){msg.style.color="var(--accent)";msg.textContent=e.message})
+.then(function(){$("submit").disabled=false});
+};
+$("people").onclick=function(e){
+var id=e.target.getAttribute&&e.target.getAttribute("data-id");
+if(!id)return;
+var key=prompt("Nhập mã quản trị để xóa:");
+if(!key)return;
+fetch("/api/delete/"+encodeURIComponent(id),{method:"DELETE",headers:{"x-admin-key":key}})
+.then(function(r){if(!r.ok)alert("Sai mã quản trị");refresh()});
+};
+refresh();setInterval(refresh,30000);
+</script>
+</body>
+</html>

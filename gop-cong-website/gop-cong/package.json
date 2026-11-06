@@ -1,0 +1,8 @@
+{
+  "name": "gop-cong",
+  "version": "1.0.0",
+  "description": "Trang web góp công online: góp giờ công giúp người khác",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
